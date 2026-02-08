@@ -5,4 +5,3 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class RoiConfig:
     ext: str = "png"
-

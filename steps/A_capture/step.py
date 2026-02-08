@@ -12,7 +12,6 @@ from utils.waktu import tanggal_str, waktu_str
 from .config import CaptureConfig
 from .service import CaptureService, HasilCapture
 
-
 def jalankan_step_A_capture() -> List[HasilCapture]:
     kode_pc_path: Path = settings.ROOT_DIR / "config" / "kode_pc.txt"
     kode_pc = baca_teks_rapi(kode_pc_path, default="pc1")

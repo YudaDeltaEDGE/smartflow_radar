@@ -78,5 +78,3 @@ class RoiService:
                 idx += 1
 
         return hasil
-
-

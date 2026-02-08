@@ -12,14 +12,12 @@ from utils.waktu import tanggal_str
 from .config import RoiConfig
 from .service import RoiService, TileResult
 
-
 def _baca_emiten_map(path: Path) -> List[str]:
     if not path.exists():
         raise FileNotFoundError(f"File emiten_map.txt tidak ditemukan: {path}")
 
     lines = path.read_text(encoding="utf-8").splitlines()
     return [ln.strip() for ln in lines if ln.strip()]
-
 
 def jalankan_step_B_roi() -> List[TileResult]:
     tanggal_folder = tanggal_str(settings.DATE_FOLDER_FORMAT)

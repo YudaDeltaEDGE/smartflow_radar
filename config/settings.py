@@ -1,3 +1,5 @@
+# config/settings.py
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
@@ -23,6 +25,5 @@ class Settings:
     # ===== STEP B (ROI Tiles) =====
     TILE_COLS: int = 3
     TILE_ROWS: int = 8
-
 
 settings = Settings()
