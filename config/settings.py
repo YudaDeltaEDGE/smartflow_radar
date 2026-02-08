@@ -1,5 +1,3 @@
-# config/settings.py
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
@@ -13,18 +11,18 @@ class Settings:
     DATE_FOLDER_FORMAT: str = "%Y-%m-%d"
     TIME_FILENAME_FORMAT: str = "%H-%M-%S"
 
-    # ====== STEP A CAPTURE: CROP ======
+    # ===== STEP A (Crop Raw) =====
     CAPTURE_CROP_TOP_PX: int = 92
     CAPTURE_CROP_BOTTOM_PX: int = 36
     CAPTURE_CROP_LEFT_PX: int = 0
     CAPTURE_CROP_RIGHT_PX: int = 4
 
-    # ====== STEP A CAPTURE: MONITOR AKTIF ======
-    # Sekarang: capture monitor 1 saja.
-    # Nanti kalau sudah siap: ubah jadi (1,2,3,4)
+    # Monitor aktif (sementara 1 saja)
     ACTIVE_MONITORS: Tuple[int, ...] = (1,)
+
+    # ===== STEP B (ROI Tiles) =====
+    TILE_COLS: int = 3
+    TILE_ROWS: int = 8
 
 
 settings = Settings()
-
-

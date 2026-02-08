@@ -12,6 +12,7 @@ from utils.waktu import tanggal_str, waktu_str
 from .config import CaptureConfig
 from .service import CaptureService, HasilCapture
 
+
 def jalankan_step_A_capture() -> List[HasilCapture]:
     kode_pc_path: Path = settings.ROOT_DIR / "config" / "kode_pc.txt"
     kode_pc = baca_teks_rapi(kode_pc_path, default="pc1")
@@ -23,8 +24,10 @@ def jalankan_step_A_capture() -> List[HasilCapture]:
     tiles_dir = base_dir / "Tiles"
     header_dir = base_dir / "Header"
     footer_dir = base_dir / "Footer"
+    body_dir = base_dir / "Body"
 
-    for d in (raw_dir, tiles_dir, header_dir, footer_dir):
+    # Pastikan semua folder ada
+    for d in (raw_dir, tiles_dir, header_dir, footer_dir, body_dir):
         pastikan_folder(d)
 
     ts_file = waktu_str(settings.TIME_FILENAME_FORMAT)

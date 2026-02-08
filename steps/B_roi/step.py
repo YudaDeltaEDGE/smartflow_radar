@@ -1,73 +1,66 @@
 # steps/B_roi/step.py
 
-'''from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 from typing import List
 
 from config.settings import settings
-from utils.path import baca_teks_rapi
+from utils.path import pastikan_folder
+from utils.waktu import tanggal_str
 
 from .config import RoiConfig
-from .service import RoiService, HasilRoi
+from .service import RoiService, TileResult
 
 
 def _baca_emiten_map(path: Path) -> List[str]:
-    teks = path.read_text(encoding="utf-8").strip().splitlines()
-    emiten = [x.strip() for x in teks if x.strip()]
-    return emiten
+    if not path.exists():
+        raise FileNotFoundError(f"File emiten_map.txt tidak ditemukan: {path}")
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [ln.strip() for ln in lines if ln.strip()]
 
 
-def jalankan_step_B_roi() -> List[HasilRoi]:
-    folder_hari_ini = settings.folder_tanggal_hari_ini()
+def jalankan_step_B_roi() -> List[TileResult]:
+    tanggal_folder = tanggal_str(settings.DATE_FOLDER_FORMAT)
+    base_dir = settings.IMAGES_DIR / tanggal_folder
 
-    # Input: semua PNG di folder tanggal hari ini (yang berasal dari Step A)
-    gambar_monitor = sorted([p for p in folder_hari_ini.glob("*.png")])
+    raw_dir = base_dir / "Raw"
+    tiles_dir = base_dir / "Tiles"
+    body_dir = base_dir / "Body"
 
-    if not gambar_monitor:
-        raise FileNotFoundError(
-            f"Tidak ada gambar PNG di {folder_hari_ini}. "
-            f"Jalankan Step A dulu."
-        )
+    # Pastikan folder Tiles & Body ada
+    for d in (tiles_dir, body_dir):
+        pastikan_folder(d)
 
-    # Emiten map
+    # Ambil emiten dari config/emiten_map.txt
     emiten_map_path = settings.ROOT_DIR / "config" / "emiten_map.txt"
-    daftar_emiten = _baca_emiten_map(emiten_map_path)
+    emiten_all = _baca_emiten_map(emiten_map_path)
 
-    # Output ROI folder
-    out_roi = folder_hari_ini / "roi"
-    out_roi.mkdir(parents=True, exist_ok=True)
+    # Karena sekarang 1 monitor → ambil 24 pertama
+    total_tile = settings.TILE_ROWS * settings.TILE_COLS
+    emiten_24 = emiten_all[:total_tile]
 
-    # Config ROI (isi margin/gap sesuai kondisi kamu)
-    cfg = RoiConfig(
-        cols=3,
-        rows=8,
+    # Ambil semua file Raw
+    raw_files = sorted(list(raw_dir.glob("*.png")) +
+                       list(raw_dir.glob("*.jpg")) +
+                       list(raw_dir.glob("*.jpeg")))
 
-        # TODO: ISI INI (awal: coba 0 semua, nanti kita tuning)
-        margin_left=0,
-        margin_top=0,
-        margin_right=0,
-        margin_bottom=0,
-        gap_x=0,
-        gap_y=0,
+    if not raw_files:
+        raise FileNotFoundError(f"Tidak ada file Raw di: {raw_dir}")
 
-        # Sub-crop boleh kosong dulu (0,0,0,0) => akan di-skip
-        crop_harga=(0, 0, 0, 0),
-        crop_footer_cek=(0, 0, 0, 0),
-        crop_total_buy_lot=(0, 0, 0, 0),
-        crop_total_sell_lot=(0, 0, 0, 0),
-    )
+    cfg = RoiConfig()
+    svc = RoiService(cols=settings.TILE_COLS, rows=settings.TILE_ROWS)
 
-    svc = RoiService(cfg)
+    hasil_semua: List[TileResult] = []
 
-    semua_hasil: List[HasilRoi] = []
-    for img_path in gambar_monitor:
-        hasil = svc.proses_satu_gambar_monitor(
-            path_gambar=img_path,
-            daftar_emiten_urut=daftar_emiten,
-            out_dir_roi=out_roi,
+    for raw_path in raw_files:
+        hasil = svc.potong_24_tile(
+            raw_image_path=raw_path,
+            tiles_dir=tiles_dir,
+            emiten_list_24=emiten_24,
+            out_ext=cfg.ext,
         )
-        semua_hasil.append(hasil)
+        hasil_semua.extend(hasil)
 
-    return semua_hasil
-'''
+    return hasil_semua
