@@ -1,0 +1,13 @@
+[project]
+name = "smartflow-radar"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "mss>=10.1.0",
+    "numpy>=2.4.2",
+    "pillow>=12.1.0",
+    "pytesseract>=0.3.13",
+    "tzdata>=2025.3",
+]
