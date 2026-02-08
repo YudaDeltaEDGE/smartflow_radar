@@ -1,4 +1,5 @@
 # utils/path.py
+
 from __future__ import annotations
 from pathlib import Path
 
@@ -11,3 +12,4 @@ def baca_teks_rapi(path: Path, default: str = "pc1") -> str:
         return teks if teks else default
     except FileNotFoundError:
         return default
+

@@ -2,34 +2,36 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
 
 @dataclass(frozen=True)
 class Settings:
+    # Root project (folder yang sama dengan main.py)
     ROOT_DIR: Path = Path(__file__).resolve().parents[1]
+
+    # Output utama
     OUTPUT_DIR: Path = ROOT_DIR / "output"
+
+    # Output baru sesuai permintaan:
+    # output/images/YYYY-MM-DD/{Raw,Tiles,Header,Footer}
     IMAGES_DIR: Path = OUTPUT_DIR / "images"
 
-    TZ: str = "Asia/Makassar"
+    # Format folder tanggal
+    DATE_FOLDER_FORMAT: str = "%Y-%m-%d"
 
-    # ======================================
-    # MONITOR SETTING
-    # ======================================
-    # None  -> capture semua monitor
-    # 1     -> hanya monitor 1
-    # 2     -> hanya monitor 2
-    # 3     -> dst
-    MONITOR_AKTIF: int | None = 1
-    # ======================================
+    # Format timestamp untuk nama file (sesuai contoh kamu: 08-17-36)
+    TIME_FILENAME_FORMAT: str = "%H-%M-%S"
 
-    def folder_tanggal_hari_ini(self) -> Path:
-        today = datetime.now(ZoneInfo(self.TZ)).strftime("%Y-%m-%d")
-        return self.IMAGES_DIR / today
+    # ====== STEP A CAPTURE: CROP VERTIKAL ======
+    # Buang piksel dari atas (di atas baris 1)
+    CAPTURE_CROP_TOP_PX: int = 92
 
-    def jam_sekarang(self) -> str:
-        return datetime.now(ZoneInfo(self.TZ)).strftime("%H-%M-%S")
+    # Buang piksel dari bawah (di bawah baris 8)
+    CAPTURE_CROP_BOTTOM_PX: int = 36
+
+    # Jika suatu saat kamu ingin crop kiri/kanan juga:
+    CAPTURE_CROP_LEFT_PX: int = 0
+    CAPTURE_CROP_RIGHT_PX: int = 4
 
 
 settings = Settings()
+
