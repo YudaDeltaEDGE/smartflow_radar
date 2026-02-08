@@ -52,10 +52,21 @@ def jalankan_step_B_roi() -> List[TileResult]:
 
     hasil_semua: List[TileResult] = []
 
+    '''for raw_path in raw_files:
+        hasil = svc.potong_24_tile(
+            raw_image_path=raw_path,
+            tiles_dir=tiles_dir,
+            emiten_list_24=emiten_24,
+            out_ext=cfg.ext,
+        )'''
+    header_dir = base_dir / "Header"
+    pastikan_folder(header_dir)
+
     for raw_path in raw_files:
         hasil = svc.potong_24_tile(
             raw_image_path=raw_path,
             tiles_dir=tiles_dir,
+            header_dir=header_dir,
             emiten_list_24=emiten_24,
             out_ext=cfg.ext,
         )
