@@ -2,6 +2,10 @@
 
 from steps.A_capture.step import jalankan_step_A_capture
 from steps.B_roi.step import jalankan_step_B_roi
+from steps.C_harga.step import jalankan_step_C_harga
+
+from pipeline.types import Context
+
 
 def main() -> None:
     print("=== STEP A: CAPTURE ===")
@@ -15,6 +19,12 @@ def main() -> None:
     for t in hasil_b[:5]:
         print(f"Tile contoh: {t.emiten} (r{t.row} c{t.col}) -> {t.path_file}")
 
+    # Step C (OCR harga)
+    print("\n=== STEP C: OCR HARGA (Tesseract) ===")
+    ctx = Context()
+    ctx = jalankan_step_C_harga(ctx)
+    print(f"CSV harga tersimpan: {ctx.csv_harga_path}")
+
+
 if __name__ == "__main__":
     main()
-
