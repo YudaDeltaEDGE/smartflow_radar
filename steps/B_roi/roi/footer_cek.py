@@ -21,8 +21,8 @@ def crop_footer_cek(tile_img: Image.Image) -> Image.Image:
     Perbesar tinggi	kecilkan y0, besarkan y1
     '''
     x0 = int(w * 0.25)
-    x1 = int(w * 0.60)
-    y0 = int(h * 0.87)
+    x1 = int(w * 0.80)
+    y0 = int(h * 0.75)
     y1 = int(h * 0.98)
 
     return tile_img.crop((x0, y0, x1, y1))
