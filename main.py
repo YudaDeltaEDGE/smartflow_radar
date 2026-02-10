@@ -1,5 +1,3 @@
-# main.py
-
 from steps.A_capture.step import jalankan_step_A_capture
 from steps.B_roi.step import jalankan_step_B_roi
 from steps.C_harga.step import jalankan_step_C_harga
@@ -13,15 +11,13 @@ def main() -> None:
     for h in hasil_a:
         print(f"Raw: m{h.monitor_index} -> {h.path_file}")
 
-    print("\n=== STEP B: ROI (24 Tiles) ===")
-    hasil_b = jalankan_step_B_roi()
-    print(f"Total tiles dibuat: {len(hasil_b)}")
-    for t in hasil_b[:5]:
-        print(f"Tile contoh: {t.emiten} (r{t.row} c{t.col}) -> {t.path_file}")
-
-    # Step C (OCR harga)
-    print("\n=== STEP C: OCR HARGA (Tesseract) ===")
     ctx = Context()
+
+    print("\n=== STEP B: ROI (in-memory harga_items) ===")
+    ctx = jalankan_step_B_roi(ctx)
+    print(f"Total harga_items: {len(ctx.harga_items)}")
+
+    print("\n=== STEP C: OCR HARGA (Tesseract) ===")
     ctx = jalankan_step_C_harga(ctx)
     print(f"CSV harga tersimpan: {ctx.csv_harga_path}")
 

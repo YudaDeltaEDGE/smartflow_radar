@@ -9,40 +9,48 @@ from config.settings import settings
 from utils.path import pastikan_folder
 from utils.waktu import tanggal_str
 
+from pipeline.types import Context
+
 from .config import RoiConfig
 from .service import RoiService, TileResult
+
 
 def _baca_emiten_map(path: Path) -> List[str]:
     if not path.exists():
         raise FileNotFoundError(f"File emiten_map.txt tidak ditemukan: {path}")
-
     lines = path.read_text(encoding="utf-8").splitlines()
     return [ln.strip() for ln in lines if ln.strip()]
 
-def jalankan_step_B_roi() -> List[TileResult]:
+
+def jalankan_step_B_roi(ctx: Context) -> Context:
+    """
+    Step B_roi (PRODUKSI):
+    - Potong 24 tile (3x8) dari Raw
+    - Crop area harga dari tiap tile
+    - Masukkan ke ctx.harga_items (in-memory)
+    - Tidak simpan tile/crop ke disk kecuali debug mode
+    """
     tanggal_folder = tanggal_str(settings.DATE_FOLDER_FORMAT)
     base_dir = settings.IMAGES_DIR / tanggal_folder
 
     raw_dir = base_dir / "Raw"
-    tiles_dir = base_dir / "Tiles"
-    body_dir = base_dir / "Body"
 
-    # Pastikan folder Tiles & Body ada
-    for d in (tiles_dir, body_dir):
-        pastikan_folder(d)
+    # folder debug (dipakai hanya kalau debug_save=True)
+    tiles_dir = base_dir / "Tiles"
+    header_dir = base_dir / "Header"
 
     # Ambil emiten dari config/emiten_map.txt
     emiten_map_path = settings.ROOT_DIR / "config" / "emiten_map.txt"
     emiten_all = _baca_emiten_map(emiten_map_path)
 
-    # Karena sekarang 1 monitor → ambil 24 pertama
     total_tile = settings.TILE_ROWS * settings.TILE_COLS
     emiten_24 = emiten_all[:total_tile]
 
-    # Ambil semua file Raw
-    raw_files = sorted(list(raw_dir.glob("*.png")) +
-                       list(raw_dir.glob("*.jpg")) +
-                       list(raw_dir.glob("*.jpeg")))
+    raw_files = sorted(
+        list(raw_dir.glob("*.png"))
+        + list(raw_dir.glob("*.jpg"))
+        + list(raw_dir.glob("*.jpeg"))
+    )
 
     if not raw_files:
         raise FileNotFoundError(f"Tidak ada file Raw di: {raw_dir}")
@@ -50,26 +58,31 @@ def jalankan_step_B_roi() -> List[TileResult]:
     cfg = RoiConfig()
     svc = RoiService(cols=settings.TILE_COLS, rows=settings.TILE_ROWS)
 
-    hasil_semua: List[TileResult] = []
+    # kalau debug, pastikan foldernya ada
+    if cfg.debug_save:
+        if cfg.debug_save_tiles:
+            pastikan_folder(tiles_dir)
+        if cfg.debug_save_harga_crop:
+            pastikan_folder(header_dir)
 
-    '''for raw_path in raw_files:
-        hasil = svc.potong_24_tile(
-            raw_image_path=raw_path,
-            tiles_dir=tiles_dir,
-            emiten_list_24=emiten_24,
-            out_ext=cfg.ext,
-        )'''
-    header_dir = base_dir / "Header"
-    pastikan_folder(header_dir)
+    # PROSES semua raw (kalau kamu cuma mau raw terbaru, nanti kita bisa ubah)
+    semua_harga_items = []
+    semua_tiles: List[TileResult] = []
 
     for raw_path in raw_files:
-        hasil = svc.potong_24_tile(
+        tiles_out, harga_items = svc.potong_24_tile_to_harga_items(
             raw_image_path=raw_path,
-            tiles_dir=tiles_dir,
-            header_dir=header_dir,
             emiten_list_24=emiten_24,
+            debug_save=cfg.debug_save,
+            debug_save_tiles=cfg.debug_save_tiles,
+            debug_save_harga_crop=cfg.debug_save_harga_crop,
+            tiles_dir=tiles_dir if cfg.debug_save_tiles else None,
+            header_dir=header_dir if cfg.debug_save_harga_crop else None,
             out_ext=cfg.ext,
         )
-        hasil_semua.extend(hasil)
+        semua_tiles.extend(tiles_out)
+        semua_harga_items.extend(harga_items)
 
-    return hasil_semua
+    # isi Context untuk Step C
+    ctx.harga_items = semua_harga_items
+    return ctx
