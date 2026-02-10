@@ -4,8 +4,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class FooterCekConfig:
-    # kalau True: simpan debug image preprocessed
-    debug_save: bool = False
+    """
+    Konfigurasi Step D_footer_cek (gate).
 
-    # threshold untuk ambil teks putih (kadang perlu tweak)
+    - bin_threshold: threshold untuk ambil teks terang (angka/teks putih)
+      dari crop footer_cek.
+    - debug_save: (reserved) kalau nanti mau simpan hasil preprocess.
+    """
+    debug_save: bool = False
     bin_threshold: int = 170

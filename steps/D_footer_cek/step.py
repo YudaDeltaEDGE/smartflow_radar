@@ -1,7 +1,7 @@
 # steps/D_footer_cek/step.py
 from __future__ import annotations
 
-from pipeline.types import Context
+from pipeline.types import Context, FooterGate, FooterDecision
 from .config import FooterCekConfig
 from .service import FooterCekService
 
@@ -9,30 +9,78 @@ from .service import FooterCekService
 def jalankan_step_D_footer_cek(ctx: Context) -> Context:
     """
     STEP D - FOOTER CEK (GATE)
-    Input: ctx.footer_cek_items
-    Output: (sementara) print ringkasan:
-      - emiten yang tidak ada '%'
-      - emiten yang terindikasi 'is not available'
+
+    Input:
+      - ctx.footer_cek_items (hasil crop dari Step B_roi)
+
+    Output:
+      - ctx.footer_decisions: dict emiten -> FooterDecision(gate, raw_text)
+      - ctx.screen_mode: "wrong_tab" atau "time_ok"
+
+    Rule:
+      - Jika ada '%' -> OK (boleh lanjut E/F)
+      - Jika tidak ada '%':
+          - Jika terdeteksi 'not available' -> NOT_AVAILABLE (eligible untuk retry capture nanti)
+          - Jika indikasi global wrong tab -> WRONG_TAB (fail-fast nanti)
+          - Selain itu -> UNKNOWN
     """
+
     cfg = FooterCekConfig()
     svc = FooterCekService(bin_threshold=cfg.bin_threshold)
 
-    results = svc.run(ctx.footer_cek_items)
+    raws = svc.run(ctx.footer_cek_items)
 
-    tanpa_persen = [r for r in results if not r.has_percent]
-    not_available = [r for r in results if (not r.has_percent and r.is_not_available)]
+    # Deteksi global "WRONG_TAB":
+    # - Tidak ada '%' sama sekali di semua tile
+    # - Dan tidak ada indikasi "not available"
+    has_any_percent = any(r.has_percent for r in raws)
+    not_available_count = sum(1 for r in raws if (not r.has_percent and r.is_not_available))
 
-    print(f"[D_footer_cek] Total items: {len(results)}")
-    print(f"[D_footer_cek] Tanpa %: {len(tanpa_persen)}")
-    if tanpa_persen:
-        print("[D_footer_cek] Emiten tanpa % (perlu cek tile / kemungkinan not available):")
-        for r in tanpa_persen:
-            print(f"  - {r.emiten} | text='{r.raw_text}'")
+    is_wrong_tab = (not has_any_percent) and (not_available_count == 0)
 
-    print(f"[D_footer_cek] Terindikasi NOT AVAILABLE: {len(not_available)}")
-    if not_available:
-        print("[D_footer_cek] Emiten NOT AVAILABLE (aman: skip buy/sell lot):")
-        for r in not_available:
-            print(f"  - {r.emiten} | text='{r.raw_text}'")
+    # Isi keputusan per emiten
+    ctx.footer_decisions = {}
+    for r in raws:
+        if r.has_percent:
+            gate = FooterGate.OK
+        else:
+            if r.is_not_available:
+                gate = FooterGate.NOT_AVAILABLE
+            else:
+                gate = FooterGate.WRONG_TAB if is_wrong_tab else FooterGate.UNKNOWN
+
+        ctx.footer_decisions[r.emiten] = FooterDecision(
+            gate=gate,
+            raw_text=r.raw_text,
+        )
+
+    ctx.screen_mode = "wrong_tab" if is_wrong_tab else "time_ok"
+
+    # Log ringkas agar gampang debugging
+    ok_count = sum(1 for d in ctx.footer_decisions.values() if d.gate == FooterGate.OK)
+    na_count = sum(1 for d in ctx.footer_decisions.values() if d.gate == FooterGate.NOT_AVAILABLE)
+    wt_count = sum(1 for d in ctx.footer_decisions.values() if d.gate == FooterGate.WRONG_TAB)
+    unk_count = sum(1 for d in ctx.footer_decisions.values() if d.gate == FooterGate.UNKNOWN)
+
+    print(
+        f"[D_footer_cek] screen_mode={ctx.screen_mode} "
+        f"OK={ok_count} NOT_AVAILABLE={na_count} WRONG_TAB={wt_count} UNKNOWN={unk_count}"
+    )
+
+    # Print daftar emiten yang false-ish untuk kamu cek cepat
+    if na_count:
+        print("[D_footer_cek] Emiten NOT_AVAILABLE (eligible retry capture nanti):")
+        for em, d in ctx.footer_decisions.items():
+            if d.gate == FooterGate.NOT_AVAILABLE:
+                print(f"  - {em} | text='{d.raw_text}'")
+
+    if wt_count:
+        print("[D_footer_cek] Indikasi SALAH TAB (Chart/Price). Pipeline harus fail-fast nanti.")
+
+    if unk_count and not is_wrong_tab:
+        print("[D_footer_cek] Emiten UNKNOWN (OCR noise / kasus lain):")
+        for em, d in ctx.footer_decisions.items():
+            if d.gate == FooterGate.UNKNOWN:
+                print(f"  - {em} | text='{d.raw_text}'")
 
     return ctx
