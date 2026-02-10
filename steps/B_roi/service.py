@@ -1,5 +1,4 @@
 # steps/B_roi/service.py
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,6 +8,7 @@ from typing import List, Tuple, Optional
 from PIL import Image
 
 from pipeline.types import HargaItem
+from .roi.harga import crop_harga
 
 
 @dataclass(frozen=True)
@@ -37,21 +37,6 @@ class RoiService:
             bounds.append((start, end))
             start = end
         return bounds
-
-    def _crop_harga_saja(self, tile_img: Image.Image) -> Image.Image:
-        """
-        Crop area harga (sub-header).
-        Koordinat persentase agar fleksibel resolusi.
-        """
-        w, h = tile_img.size
-
-        x0 = int(w * 0.25)
-        x1 = int(w * 0.65)
-
-        y0 = int(h * 0.02)
-        y1 = int(h * 0.15)
-
-        return tile_img.crop((x0, y0, x1, y1))
 
     def potong_24_tile_to_harga_items(
         self,
@@ -94,11 +79,10 @@ class RoiService:
 
                 x0_tile, x1_tile = x_bounds[c]
                 y0_tile, y1_tile = y_bounds[r]
-
                 tile = img.crop((x0_tile, y0_tile, x1_tile, y1_tile))
 
-                # crop harga (in-memory)
-                harga_img = self._crop_harga_saja(tile)
+                # crop harga (in-memory) => DIPINDAH ke helper roi/harga.py
+                harga_img = crop_harga(tile)
                 harga_items.append(HargaItem(emiten=emiten, image=harga_img))
 
                 saved_tile_path: Optional[Path] = None

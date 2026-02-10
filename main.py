@@ -1,3 +1,5 @@
+# main.py
+
 from steps.A_capture.step import jalankan_step_A_capture
 from steps.B_roi.step import jalankan_step_B_roi
 from steps.C_harga.step import jalankan_step_C_harga

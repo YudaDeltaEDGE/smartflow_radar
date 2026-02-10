@@ -1,5 +1,4 @@
 # steps/B_roi/step.py
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,7 +7,6 @@ from typing import List
 from config.settings import settings
 from utils.path import pastikan_folder
 from utils.waktu import tanggal_str
-
 from pipeline.types import Context
 
 from .config import RoiConfig
@@ -25,17 +23,14 @@ def _baca_emiten_map(path: Path) -> List[str]:
 def jalankan_step_B_roi(ctx: Context) -> Context:
     """
     STEP B - ROI (PRODUCTION MODE)
-
     - Ambil 1 RAW TERBARU dari folder Raw
     - Potong menjadi 24 tile (3x8)
     - Crop area harga dari tiap tile
     - Masukkan ke ctx.harga_items (IN-MEMORY)
     - Tidak simpan tile/crop ke disk kecuali debug mode
     """
-
     tanggal_folder = tanggal_str(settings.DATE_FOLDER_FORMAT)
     base_dir = settings.IMAGES_DIR / tanggal_folder
-
     raw_dir = base_dir / "Raw"
 
     # folder debug (dipakai hanya kalau debug_save=True)
@@ -52,13 +47,11 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
     # ===============================
     # AMBIL 1 RAW TERBARU SAJA
     # ===============================
-
     raw_candidates = (
         list(raw_dir.glob("*.png"))
         + list(raw_dir.glob("*.jpg"))
         + list(raw_dir.glob("*.jpeg"))
     )
-
     if not raw_candidates:
         raise FileNotFoundError(f"Tidak ada file Raw di: {raw_dir}")
 
@@ -71,7 +64,6 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
     # ===============================
     # INISIALISASI SERVICE
     # ===============================
-
     cfg = RoiConfig()
     svc = RoiService(cols=settings.TILE_COLS, rows=settings.TILE_ROWS)
 
@@ -88,7 +80,6 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
     # ===============================
     # PROSES 1 RAW TERBARU
     # ===============================
-
     for raw_path in raw_files:
         tiles_out, harga_items = svc.potong_24_tile_to_harga_items(
             raw_image_path=raw_path,
@@ -100,16 +91,13 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
             header_dir=header_dir if cfg.debug_save_harga_crop else None,
             out_ext=cfg.ext,
         )
-
         semua_tiles.extend(tiles_out)
         semua_harga_items.extend(harga_items)
 
     # ===============================
     # SIMPAN KE CONTEXT (IN-MEMORY)
     # ===============================
-
     ctx.harga_items = semua_harga_items
-
     print(f"[B_roi] Total harga_items (24 expected): {len(ctx.harga_items)}")
 
     return ctx
