@@ -1,5 +1,4 @@
 # pipeline/types.py
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,22 +8,20 @@ from PIL import Image
 
 @dataclass(frozen=True)
 class HargaItem:
-    """
-    Item harga yang dikirim dari Step B_roi -> Step C_harga via Context (in-memory).
-    """
     emiten: str
-    image: Image.Image  # crop area harga (PIL Image)
+    image: Image.Image
+
+
+@dataclass(frozen=True)
+class FooterCekItem:
+    emiten: str
+    image: Image.Image
 
 
 @dataclass
 class Context:
-    """
-    Data bus antar step (sesuai arsitektur PSSC).
-    Hanya Context yang boleh membawa data dari step ke step.
-    """
-
-    # Input untuk Step C_harga (diisi Step B_roi kalau sudah produksi in-memory)
     harga_items: List[HargaItem] = field(default_factory=list)
+    footer_cek_items: List[FooterCekItem] = field(default_factory=list)
 
-    # Output Step C_harga
+    # optional outputs
     csv_harga_path: Optional[str] = None

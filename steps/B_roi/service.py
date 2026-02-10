@@ -7,8 +7,9 @@ from typing import List, Tuple, Optional
 
 from PIL import Image
 
-from pipeline.types import HargaItem
+from pipeline.types import HargaItem, FooterCekItem
 from .roi.harga import crop_harga
+from .roi.footer_cek import crop_footer_cek
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,7 @@ class RoiService:
             start = end
         return bounds
 
-    def potong_24_tile_to_harga_items(
+    def potong_24_tile_to_items(
         self,
         raw_image_path: Path,
         emiten_list_24: List[str],
@@ -46,17 +47,21 @@ class RoiService:
         debug_save: bool = False,
         debug_save_tiles: bool = True,
         debug_save_harga_crop: bool = True,
+        debug_save_footer_cek_crop: bool = True,
         tiles_dir: Optional[Path] = None,
         header_dir: Optional[Path] = None,
+        footer_dir: Optional[Path] = None,
         out_ext: str = "png",
-    ) -> Tuple[List[TileResult], List[HargaItem]]:
+    ) -> Tuple[List[TileResult], List[HargaItem], List[FooterCekItem]]:
         """
-        Output utama: List[HargaItem] (in-memory) untuk Step C.
-        Output tambahan: List[TileResult] (untuk info/debug; path_file None kalau tidak disimpan).
+        Output utama (in-memory):
+        - harga_items: untuk Step C_harga
+        - footer_cek_items: untuk Step D_footer_cek
 
-        Kalau debug_save=True:
-          - simpan tile ke tiles_dir (opsional)
-          - simpan crop harga ke header_dir (opsional)
+        Debug save (optional):
+        - Tiles
+        - Header (harga crop)
+        - Footer (footer_cek crop)
         """
         img = Image.open(raw_image_path).convert("RGB")
         w, h = img.size
@@ -68,6 +73,7 @@ class RoiService:
 
         tiles_out: List[TileResult] = []
         harga_items: List[HargaItem] = []
+        footer_items: List[FooterCekItem] = []
 
         idx = 0
         for r in range(self.rows):
@@ -81,13 +87,16 @@ class RoiService:
                 y0_tile, y1_tile = y_bounds[r]
                 tile = img.crop((x0_tile, y0_tile, x1_tile, y1_tile))
 
-                # crop harga (in-memory) => DIPINDAH ke helper roi/harga.py
+                # --- HARGA (stabil) ---
                 harga_img = crop_harga(tile)
                 harga_items.append(HargaItem(emiten=emiten, image=harga_img))
 
+                # --- FOOTER CEK (crop only) ---
+                footer_img = crop_footer_cek(tile)
+                footer_items.append(FooterCekItem(emiten=emiten, image=footer_img))
+
                 saved_tile_path: Optional[Path] = None
 
-                # DEBUG SAVE (optional)
                 if debug_save:
                     if debug_save_tiles:
                         if tiles_dir is None:
@@ -100,8 +109,13 @@ class RoiService:
                         if header_dir is None:
                             raise ValueError("header_dir wajib jika debug_save_harga_crop=True")
                         harga_name = f"{base_stem}_{emiten}_harga.{out_ext}"
-                        harga_path = header_dir / harga_name
-                        harga_img.save(harga_path)
+                        harga_img.save(header_dir / harga_name)
+
+                    if debug_save_footer_cek_crop:
+                        if footer_dir is None:
+                            raise ValueError("footer_dir wajib jika debug_save_footer_cek_crop=True")
+                        footer_name = f"{base_stem}_{emiten}_footer_cek.{out_ext}"
+                        footer_img.save(footer_dir / footer_name)
 
                 tiles_out.append(
                     TileResult(
@@ -114,4 +128,4 @@ class RoiService:
 
                 idx += 1
 
-        return tiles_out, harga_items
+        return tiles_out, harga_items, footer_items
