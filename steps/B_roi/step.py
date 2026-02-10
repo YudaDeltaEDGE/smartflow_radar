@@ -24,12 +24,15 @@ def _baca_emiten_map(path: Path) -> List[str]:
 
 def jalankan_step_B_roi(ctx: Context) -> Context:
     """
-    Step B_roi (PRODUKSI):
-    - Potong 24 tile (3x8) dari Raw
+    STEP B - ROI (PRODUCTION MODE)
+
+    - Ambil 1 RAW TERBARU dari folder Raw
+    - Potong menjadi 24 tile (3x8)
     - Crop area harga dari tiap tile
-    - Masukkan ke ctx.harga_items (in-memory)
+    - Masukkan ke ctx.harga_items (IN-MEMORY)
     - Tidak simpan tile/crop ke disk kecuali debug mode
     """
+
     tanggal_folder = tanggal_str(settings.DATE_FOLDER_FORMAT)
     base_dir = settings.IMAGES_DIR / tanggal_folder
 
@@ -46,14 +49,28 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
     total_tile = settings.TILE_ROWS * settings.TILE_COLS
     emiten_24 = emiten_all[:total_tile]
 
-    raw_files = sorted(
+    # ===============================
+    # AMBIL 1 RAW TERBARU SAJA
+    # ===============================
+
+    raw_candidates = (
         list(raw_dir.glob("*.png"))
         + list(raw_dir.glob("*.jpg"))
         + list(raw_dir.glob("*.jpeg"))
     )
 
-    if not raw_files:
+    if not raw_candidates:
         raise FileNotFoundError(f"Tidak ada file Raw di: {raw_dir}")
+
+    # pilih berdasarkan modified time (paling aman untuk produksi)
+    raw_latest = max(raw_candidates, key=lambda p: p.stat().st_mtime)
+    raw_files = [raw_latest]
+
+    print(f"[B_roi] Proses raw terbaru: {raw_latest.name}")
+
+    # ===============================
+    # INISIALISASI SERVICE
+    # ===============================
 
     cfg = RoiConfig()
     svc = RoiService(cols=settings.TILE_COLS, rows=settings.TILE_ROWS)
@@ -65,9 +82,12 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
         if cfg.debug_save_harga_crop:
             pastikan_folder(header_dir)
 
-    # PROSES semua raw (kalau kamu cuma mau raw terbaru, nanti kita bisa ubah)
     semua_harga_items = []
     semua_tiles: List[TileResult] = []
+
+    # ===============================
+    # PROSES 1 RAW TERBARU
+    # ===============================
 
     for raw_path in raw_files:
         tiles_out, harga_items = svc.potong_24_tile_to_harga_items(
@@ -80,9 +100,16 @@ def jalankan_step_B_roi(ctx: Context) -> Context:
             header_dir=header_dir if cfg.debug_save_harga_crop else None,
             out_ext=cfg.ext,
         )
+
         semua_tiles.extend(tiles_out)
         semua_harga_items.extend(harga_items)
 
-    # isi Context untuk Step C
+    # ===============================
+    # SIMPAN KE CONTEXT (IN-MEMORY)
+    # ===============================
+
     ctx.harga_items = semua_harga_items
+
+    print(f"[B_roi] Total harga_items (24 expected): {len(ctx.harga_items)}")
+
     return ctx
