@@ -19,7 +19,6 @@ class FooterCekItem:
     image: Image.Image
 
 
-# NEW: Total Buy Lot 5 menit (hasil crop ROI dari Step B)
 @dataclass(frozen=True)
 class TotalBuyLot5mnt:
     emiten: str
@@ -41,18 +40,19 @@ class FooterDecision:
 
 @dataclass
 class Context:
+    # step B outputs
     harga_items: List[HargaItem] = field(default_factory=list)
     footer_cek_items: List[FooterCekItem] = field(default_factory=list)
-
-    # NEW: in-memory ROI total buy lot 5 menit
     total_buy_lot_5mnt: List[TotalBuyLot5mnt] = field(default_factory=list)
 
-    # hasil step C
+    # step C output
     csv_harga_path: Optional[str] = None
 
-    # hasil step D (flag)
+    # step D output
     footer_decisions: Dict[str, FooterDecision] = field(default_factory=dict)
-
-    # info global layar
-    screen_mode: Optional[str] = None  # e.g. "time_ok" / "wrong_tab"
+    screen_mode: Optional[str] = None  # "time_ok" / "wrong_tab"
     capture_attempt: int = 0
+
+    # step E output (NEW)
+    total_buy_lot_5mnt_values: Dict[str, Optional[int]] = field(default_factory=dict)
+    csv_buy_lot_5mnt_path: Optional[str] = None
