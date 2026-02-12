@@ -25,6 +25,12 @@ class TotalBuyLot5mnt:
     image: Image.Image
 
 
+@dataclass(frozen=True)
+class TotalSellLot5mnt:
+    emiten: str
+    image: Image.Image
+
+
 class FooterGate(str, Enum):
     OK = "OK"
     NOT_AVAILABLE = "NOT_AVAILABLE"
@@ -44,6 +50,7 @@ class Context:
     harga_items: List[HargaItem] = field(default_factory=list)
     footer_cek_items: List[FooterCekItem] = field(default_factory=list)
     total_buy_lot_5mnt: List[TotalBuyLot5mnt] = field(default_factory=list)
+    total_sell_lot_5mnt: List[TotalSellLot5mnt] = field(default_factory=list)
 
     # step C output
     csv_harga_path: Optional[str] = None
@@ -53,6 +60,10 @@ class Context:
     screen_mode: Optional[str] = None  # "time_ok" / "wrong_tab"
     capture_attempt: int = 0
 
-    # step E output (NEW)
+    # step E output
     total_buy_lot_5mnt_values: Dict[str, Optional[int]] = field(default_factory=dict)
     csv_buy_lot_5mnt_path: Optional[str] = None
+
+    # step F output (NEW)
+    total_sell_lot_5mnt_values: Dict[str, Optional[int]] = field(default_factory=dict)
+    csv_sell_lot_5mnt_path: Optional[str] = None

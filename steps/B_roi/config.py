@@ -16,3 +16,6 @@ class RoiConfig:
 
     # NEW: simpan crop total buy lot 5mnt ke Body/
     debug_save_total_buy_lot_5mnt_crop: bool = True
+
+    # NEW: simpan crop total sell lot 5mnt ke Body/
+    debug_save_total_sell_lot_5mnt_crop: bool = True
